@@ -10,7 +10,12 @@ class Weather extends Equatable {
   final double lon;
   final String timestamp;
   final bool meetsThreshold;
-  final String thresholdReason;
+  final String? thresholdReason;
+  
+  // Thresholds (default values matching backend)
+  final double rainThreshold;
+  final double windThreshold;
+  final double tempThreshold;
 
   const Weather({
     required this.temperatureCelsius,
@@ -22,8 +27,15 @@ class Weather extends Equatable {
     required this.lon,
     required this.timestamp,
     required this.meetsThreshold,
-    required this.thresholdReason,
+    this.thresholdReason,
+    this.rainThreshold = 5.0,
+    this.windThreshold = 30.0,
+    this.tempThreshold = 35.0,
   });
+
+  // Convenience getters for UI
+  double get tempC => temperatureCelsius;
+  double get windKmh => windSpeedKmh;
 
   factory Weather.fromJson(Map<String, dynamic> json) {
     return Weather(
@@ -36,7 +48,10 @@ class Weather extends Equatable {
       lon: (json['lon'] as num).toDouble(),
       timestamp: json['timestamp'] as String,
       meetsThreshold: json['meets_threshold'] as bool,
-      thresholdReason: json['threshold_reason'] as String,
+      thresholdReason: json['threshold_reason'] as String?,
+      rainThreshold: json['rain_threshold'] != null ? (json['rain_threshold'] as num).toDouble() : 5.0,
+      windThreshold: json['wind_threshold'] != null ? (json['wind_threshold'] as num).toDouble() : 30.0,
+      tempThreshold: json['temp_threshold'] != null ? (json['temp_threshold'] as num).toDouble() : 35.0,
     );
   }
 
@@ -67,5 +82,8 @@ class Weather extends Equatable {
         timestamp,
         meetsThreshold,
         thresholdReason,
+        rainThreshold,
+        windThreshold,
+        tempThreshold,
       ];
 }

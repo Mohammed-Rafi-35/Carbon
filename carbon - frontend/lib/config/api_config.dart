@@ -2,7 +2,10 @@
 /// Centralized endpoint management for easy deployment changes
 class ApiConfig {
   // Base URL - Change this when deploying to production
-  static const String baseUrl = 'http://127.0.0.1:8000';
+  // For Android Emulator: use 10.0.2.2:8000
+  // For Physical Device: use your laptop IP or ngrok URL
+  // For Production: use Render.com URL
+  static const String baseUrl = 'http://10.0.2.2:8000';
   
   // API Version
   static const String apiVersion = '/api/v1';
@@ -33,4 +36,8 @@ class ApiConfig {
   
   // HMAC Secret Key (should match backend SECRET_KEY)
   static const String hmacSecretKey = 'test-secret-key-for-testing-only';
+  
+  // Environment detection
+  static bool get isProduction => baseUrl.contains('render.com');
+  static bool get isDevelopment => !isProduction;
 }

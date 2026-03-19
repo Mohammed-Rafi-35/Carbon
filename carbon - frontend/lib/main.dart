@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'themes/theme.dart';
 import 'themes/util.dart';
-import 'presentation/screens/splash_screen.dart';
+import 'core/routing/app_router.dart';
+import 'core/providers/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,22 +22,26 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
   
-  runApp(const CarbonApp());
+  runApp(const ProviderScope(child: CarbonApp()));
 }
 
-class CarbonApp extends StatelessWidget {
+class CarbonApp extends ConsumerWidget {
   const CarbonApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = createTextTheme(context, "Inter", "Inter");
     final theme = MaterialTheme(textTheme);
+    final themeMode = ref.watch(themeModeProvider);
     
     return MaterialApp(
       title: 'Carbon',
       debugShowCheckedModeBanner: false,
-      theme: theme.dark(),
-      home: const SplashScreen(),
+      theme: theme.light(),
+      darkTheme: theme.dark(),
+      themeMode: themeMode,
+      onGenerateRoute: AppRouter.generateRoute,
+      initialRoute: AppRouter.splash,
     );
   }
 }

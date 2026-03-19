@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
-import 'home/home_screen.dart';
+import '../../core/providers/auth_provider.dart';
+import '../../core/routing/app_router.dart';
+import '../../data/models/auth_state.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
@@ -33,13 +36,25 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     
     _controller.forward();
     
-    Timer(const Duration(seconds: 3), () {
+    // Listen to auth state changes
+    Timer(const Duration(seconds: 2), () {
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
+        _navigateBasedOnAuthState();
       }
     });
+  }
+
+  void _navigateBasedOnAuthState() {
+    final authState = ref.read(authProvider);
+    
+    String route;
+    if (authState.status == AuthStatus.authenticated) {
+      route = AppRouter.home;
+    } else {
+      route = AppRouter.login;
+    }
+    
+    Navigator.of(context).pushReplacementNamed(route);
   }
 
   @override

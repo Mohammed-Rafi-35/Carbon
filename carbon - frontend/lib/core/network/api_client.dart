@@ -74,30 +74,52 @@ class ApiClient {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return Exception('Connection timeout');
+        return Exception('Connection timeout. Please check your internet connection.');
       
       case DioExceptionType.badResponse:
         final statusCode = error.response?.statusCode;
-        final message = error.response?.data['detail'] ?? 'Server error';
+        final data = error.response?.data;
+        String message = 'Server error';
+        
+        if (data is Map && data.containsKey('detail')) {
+          message = data['detail'].toString();
+        } else if (data is String) {
+          message = data;
+        }
         
         switch (statusCode) {
           case 400:
             return Exception('Bad request: $message');
+          case 401:
+            return Exception('Unauthorized. Please login again.');
+          case 403:
+            return Exception('Access denied: $message');
           case 404:
             return Exception('Not found: $message');
           case 409:
             return Exception('Conflict: $message');
           case 422:
             return Exception('Validation error: $message');
+          case 500:
+            return Exception('Server error. Please try again later.');
           default:
-            return Exception('Error: $message');
+            return Exception('Error ($statusCode): $message');
         }
       
+      case DioExceptionType.cancel:
+        return Exception('Request cancelled');
+      
+      case DioExceptionType.connectionError:
+        return Exception('No internet connection. Please check your network.');
+      
       case DioExceptionType.unknown:
-        return Exception('No internet connection');
+        if (error.message?.contains('SocketException') ?? false) {
+          return Exception('No internet connection. Please check your network.');
+        }
+        return Exception('Connection failed. Please try again.');
       
       default:
-        return Exception('Something went wrong');
+        return Exception('Something went wrong. Please try again.');
     }
   }
 }

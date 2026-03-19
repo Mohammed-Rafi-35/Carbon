@@ -1,5 +1,79 @@
 import 'package:equatable/equatable.dart';
 
+/// Payout response from trigger endpoint
+class Payout extends Equatable {
+  final String id;
+  final String workerId;
+  final String orderId;
+  final double amount;
+  final String status;
+  final String reason;
+  final DateTime timestamp;
+  final Map<String, bool>? securityChecks;
+
+  const Payout({
+    required this.id,
+    required this.workerId,
+    required this.orderId,
+    required this.amount,
+    required this.status,
+    required this.reason,
+    required this.timestamp,
+    this.securityChecks,
+  });
+
+  factory Payout.fromJson(Map<String, dynamic> json) {
+    return Payout(
+      id: json['id'] as String? ?? json['transaction_id'] as String? ?? '',
+      workerId: json['worker_id'] as String? ?? '',
+      orderId: json['order_id'] as String? ?? '',
+      amount: json['amount'] != null
+          ? (json['amount'] is String
+              ? double.parse(json['amount'])
+              : (json['amount'] as num).toDouble())
+          : json['payout_amount'] != null
+              ? (json['payout_amount'] is String
+                  ? double.parse(json['payout_amount'])
+                  : (json['payout_amount'] as num).toDouble())
+              : 0.0,
+      status: json['status'] as String? ?? (json['success'] == true ? 'approved' : 'rejected'),
+      reason: json['reason'] as String? ?? '',
+      timestamp: json['timestamp'] != null
+          ? DateTime.parse(json['timestamp'] as String)
+          : DateTime.now(),
+      securityChecks: json['security_checks'] != null
+          ? Map<String, bool>.from(json['security_checks'] as Map)
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'worker_id': workerId,
+      'order_id': orderId,
+      'amount': amount,
+      'status': status,
+      'reason': reason,
+      'timestamp': timestamp.toIso8601String(),
+      if (securityChecks != null) 'security_checks': securityChecks,
+    };
+  }
+
+  @override
+  List<Object?> get props => [
+        id,
+        workerId,
+        orderId,
+        amount,
+        status,
+        reason,
+        timestamp,
+        securityChecks,
+      ];
+}
+
+// Legacy classes for backward compatibility
 class PayoutResponse extends Equatable {
   final bool success;
   final double? payoutAmount;
@@ -69,35 +143,4 @@ class PayoutHistory extends Equatable {
 
   @override
   List<Object?> get props => [id, amount, reason, timestamp];
-}
-
-class SensorData extends Equatable {
-  final double gpsSpeedKmh;
-  final double accelerometerVariance;
-  final double? gyroscopeVariance;
-  final int? timestampDiffMs;
-
-  const SensorData({
-    required this.gpsSpeedKmh,
-    required this.accelerometerVariance,
-    this.gyroscopeVariance,
-    this.timestampDiffMs,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'gps_speed_kmh': gpsSpeedKmh,
-      'accelerometer_variance': accelerometerVariance,
-      if (gyroscopeVariance != null) 'gyroscope_variance': gyroscopeVariance,
-      if (timestampDiffMs != null) 'timestamp_diff_ms': timestampDiffMs,
-    };
-  }
-
-  @override
-  List<Object?> get props => [
-        gpsSpeedKmh,
-        accelerometerVariance,
-        gyroscopeVariance,
-        timestampDiffMs,
-      ];
 }

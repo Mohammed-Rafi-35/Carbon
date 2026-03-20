@@ -255,7 +255,9 @@ class TestPayoutService:
         
         # Create worker without projected income
         worker_data = WorkerCreate(
+            name="No Income Worker",
             phone="+919999999999",
+            password="testpass123",
             zone="Test-Zone",
             vehicle_type="bike",
             projected_weekly_income=None

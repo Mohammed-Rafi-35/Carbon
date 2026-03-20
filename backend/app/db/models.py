@@ -42,13 +42,17 @@ class Worker(Base):
     __tablename__ = "workers"
     
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    name = Column(String(100), nullable=False)
     phone = Column(String(15), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
     zone = Column(String(100), nullable=False, index=True)
     vehicle_type = Column(String(50), nullable=False)
     wallet_balance = Column(Numeric(10, 2), default=0.0, nullable=False)
     weekly_rides_completed = Column(Integer, default=0, nullable=False)
     projected_weekly_income = Column(Numeric(10, 2), nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
 
 class Policy(Base):

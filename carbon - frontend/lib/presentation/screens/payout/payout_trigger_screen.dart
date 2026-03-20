@@ -52,10 +52,10 @@ class _PayoutTriggerScreenState extends ConsumerState<PayoutTriggerScreen>
       return;
     }
 
-    // Step 1: Collect sensor data
+    // Step 1: Collect sensor data (with ethical consent dialog)
     setState(() => _isCollectingSensors = true);
 
-    final sensorData = await ref.read(sensorDataProvider.notifier).collectSensorData();
+    final sensorData = await ref.read(sensorDataProvider.notifier).collectSensorData(context);
 
     if (sensorData == null) {
       if (mounted) {

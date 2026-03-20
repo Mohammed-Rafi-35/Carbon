@@ -20,14 +20,14 @@ class PayoutRepository {
     required SensorData sensorData,
   }) async {
     try {
-      // Prepare payload
+      // Prepare payload — backend expects sensor_data as nested object
       final payload = {
         'worker_id': workerId,
         'order_id': orderId,
-        'gps_speed_kmh': sensorData.gpsSpeedKmh,
-        'accelerometer_variance': sensorData.accelerometerVariance,
-        'latitude': sensorData.latitude,
-        'longitude': sensorData.longitude,
+        'sensor_data': {
+          'gps_speed_kmh': sensorData.gpsSpeedKmh,
+          'accelerometer_variance': sensorData.accelerometerVariance,
+        },
       };
 
       // Generate timestamp
@@ -38,8 +38,9 @@ class PayoutRepository {
       final signature = HmacUtil.generateSignature(payloadString, timestamp);
 
       // Make request with HMAC headers
+      final endpoint = await ApiConfig.payoutTrigger;
       final response = await _apiClient.post(
-        ApiConfig.payoutTrigger,
+        endpoint,
         data: payload,
         options: Options(
           headers: {
@@ -71,11 +72,12 @@ class PayoutRepository {
   /// Get payout history for worker
   Future<List<Payout>> getPayoutHistory(String workerId) async {
     try {
-      final response = await _apiClient.get(
-        ApiConfig.payoutHistory(workerId),
-      );
+      final endpoint = await ApiConfig.payoutHistory(workerId);
+      final response = await _apiClient.get(endpoint);
 
-      final List<dynamic> data = response.data as List<dynamic>;
+      // Backend returns {"worker_id": ..., "total_payouts": ..., "payouts": [...]}
+      final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
+      final List<dynamic> data = responseData['payouts'] as List<dynamic>? ?? [];
       return data.map((json) => Payout.fromJson(json as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {

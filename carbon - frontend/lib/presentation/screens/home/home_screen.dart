@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../config/api_config.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/order_provider.dart';
 import '../../../core/providers/payout_provider.dart';
+import '../../../core/providers/connectivity_provider.dart';
 import '../../../core/routing/app_router.dart';
 import '../../widgets/metric_card.dart';
 import '../../widgets/status_badge.dart';
@@ -15,13 +17,22 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  bool _showCelebration = false;
+  final bool _showCelebration = false;
+  String? _connectionStatus;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshData();
+      _checkConnection();
+    });
+  }
+
+  Future<void> _checkConnection() async {
+    final baseUrl = await ApiConfig.getBaseUrl();
+    setState(() {
+      _connectionStatus = baseUrl;
     });
   }
 
@@ -40,6 +51,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final worker = ref.watch(currentWorkerProvider);
     final currentOrder = ref.watch(currentOrderProvider);
     final payoutState = ref.watch(payoutProvider);
+    final connectivityStatus = ref.watch(connectivityProvider);
     
     if (worker == null) {
       return Scaffold(
@@ -84,6 +96,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
             actions: [
+              if (_connectionStatus != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: connectivityStatus == ConnectivityStatus.online
+                            ? Colors.green.withValues(alpha: 0.2)
+                            : Colors.red.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: connectivityStatus == ConnectivityStatus.online
+                                  ? Colors.green
+                                  : Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            connectivityStatus == ConnectivityStatus.online
+                                ? 'Online'
+                                : 'Offline',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: connectivityStatus == ConnectivityStatus.online
+                                  ? Colors.green
+                                  : Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               IconButton(
                 icon: const Icon(Icons.person_outline),
                 onPressed: () {
@@ -111,7 +165,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    worker.phone,
+                    worker.name,
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: colorScheme.onSurface,
@@ -196,6 +250,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     color: colorScheme.secondary,
                     onTap: () {
                       Navigator.of(context).pushNamed(AppRouter.history);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Insurance Plan Button
+                  _buildActionButton(
+                    context,
+                    icon: Icons.workspace_premium,
+                    label: 'My Insurance Plan',
+                    color: colorScheme.tertiary,
+                    onTap: () {
+                      Navigator.of(context).pushNamed(AppRouter.insurance);
                     },
                   ),
                   

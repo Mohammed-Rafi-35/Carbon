@@ -9,13 +9,16 @@ class TestWorkerRepository:
     @pytest.mark.asyncio
     async def test_create_worker(self, test_db, sample_worker_data):
         """Verify worker creation and database commit"""
+        from app.schemas.models import WorkerCreate
         worker_create = WorkerCreate(**sample_worker_data)
         worker = await WorkerRepository.create(test_db, worker_create)
-        
+
         assert worker.id is not None
         assert worker.phone == sample_worker_data["phone"]
+        assert worker.name == sample_worker_data["name"]
         assert worker.wallet_balance == Decimal("0.0")
         assert worker.weekly_rides_completed == 0
+        assert worker.password_hash != sample_worker_data["password"]  # must be hashed
     
     @pytest.mark.asyncio
     async def test_get_worker_by_phone(self, test_db, created_worker):

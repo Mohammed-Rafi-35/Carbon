@@ -163,6 +163,7 @@ async def get_payout_history(
             {
                 "id": str(tx.id),
                 "amount": float(tx.amount),
+                "status": "approved",
                 "reason": tx.reason,
                 "timestamp": tx.timestamp.isoformat()
             }

@@ -156,7 +156,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           Text(
             _selectedFilter == 'all'
                 ? 'No Transactions Yet'
-                : 'No ' + _selectedFilter.toUpperCase() + ' Transactions',
+                : 'No ${_selectedFilter.toUpperCase()} Transactions',
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
               color: colorScheme.onSurface,
@@ -167,7 +167,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           Text(
             _selectedFilter == 'all'
                 ? 'Your transaction history will appear here once you claim protection.'
-                : 'No transactions found with ${_selectedFilter} status.',
+                : 'No transactions found with $_selectedFilter status.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: colorScheme.onSurface.withValues(alpha: 0.6),
             ),

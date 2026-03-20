@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 class Worker extends Equatable {
   final String id;
+  final String name;
   final String phone;
   final String zone;
   final String vehicleType;
@@ -11,6 +12,7 @@ class Worker extends Equatable {
 
   const Worker({
     required this.id,
+    required this.name,
     required this.phone,
     required this.zone,
     required this.vehicleType,
@@ -22,6 +24,7 @@ class Worker extends Equatable {
   factory Worker.fromJson(Map<String, dynamic> json) {
     return Worker(
       id: json['id'] as String,
+      name: json['name'] as String? ?? '',
       phone: json['phone'] as String,
       zone: json['zone'] as String,
       vehicleType: json['vehicle_type'] as String,
@@ -37,20 +40,20 @@ class Worker extends Equatable {
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'phone': phone,
-      'zone': zone,
-      'vehicle_type': vehicleType,
-      'wallet_balance': walletBalance,
-      'weekly_rides_completed': weeklyRidesCompleted,
-      'projected_weekly_income': projectedWeeklyIncome,
-    };
-  }
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'phone': phone,
+        'zone': zone,
+        'vehicle_type': vehicleType,
+        'wallet_balance': walletBalance,
+        'weekly_rides_completed': weeklyRidesCompleted,
+        'projected_weekly_income': projectedWeeklyIncome,
+      };
 
   Worker copyWith({
     String? id,
+    String? name,
     String? phone,
     String? zone,
     String? vehicleType,
@@ -60,6 +63,7 @@ class Worker extends Equatable {
   }) {
     return Worker(
       id: id ?? this.id,
+      name: name ?? this.name,
       phone: phone ?? this.phone,
       zone: zone ?? this.zone,
       vehicleType: vehicleType ?? this.vehicleType,
@@ -71,12 +75,7 @@ class Worker extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        phone,
-        zone,
-        vehicleType,
-        walletBalance,
-        weeklyRidesCompleted,
-        projectedWeeklyIncome,
+        id, name, phone, zone, vehicleType,
+        walletBalance, weeklyRidesCompleted, projectedWeeklyIncome,
       ];
 }

@@ -4,12 +4,8 @@ import '../../data/models/worker.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../core/storage/secure_storage.dart';
 
-/// Auth repository provider
-final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return AuthRepository();
-});
+final authRepositoryProvider = Provider<AuthRepository>((ref) => AuthRepository());
 
-/// Auth state notifier
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _authRepository;
 
@@ -17,105 +13,92 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _checkAuthStatus();
   }
 
-  /// Check if user is already logged in
   Future<void> _checkAuthStatus() async {
     final isLoggedIn = await SecureStorage.isLoggedIn();
-    
-    if (isLoggedIn) {
-      final workerId = await SecureStorage.getWorkerId();
-      if (workerId != null) {
-        try {
-          final worker = await _authRepository.getWorkerById(workerId);
-          state = AuthState.authenticated(worker);
-        } catch (e) {
-          // If fetching worker fails, clear storage and set unauthenticated
-          await SecureStorage.clearAll();
-          state = AuthState.unauthenticated();
-        }
-      } else {
-        state = AuthState.unauthenticated();
-      }
-    } else {
+    if (!isLoggedIn) {
+      state = AuthState.unauthenticated();
+      return;
+    }
+    final workerId = await SecureStorage.getWorkerId();
+    if (workerId == null) {
+      state = AuthState.unauthenticated();
+      return;
+    }
+    try {
+      final worker = await _authRepository.getWorkerById(workerId);
+      state = AuthState.authenticated(worker);
+    } catch (_) {
+      await SecureStorage.clearAll();
       state = AuthState.unauthenticated();
     }
   }
 
-  /// Register new worker
   Future<void> register({
+    required String name,
     required String phone,
+    required String password,
     required String zone,
     required String vehicleType,
+    double? projectedWeeklyIncome,
   }) async {
     state = AuthState.loading();
-
     try {
       final worker = await _authRepository.register(
+        name: name,
         phone: phone,
+        password: password,
         zone: zone,
         vehicleType: vehicleType,
+        projectedWeeklyIncome: projectedWeeklyIncome,
       );
-
-      // Save credentials
-      await SecureStorage.saveWorkerCredentials(
-        workerId: worker.id,
-        phone: worker.phone,
-        zone: worker.zone,
-        vehicleType: worker.vehicleType,
-      );
-
-      state = AuthState.authenticated(worker);
+      await _saveAndAuthenticate(worker);
     } catch (e) {
       state = AuthState.error(e.toString().replaceAll('Exception: ', ''));
     }
   }
 
-  /// Login with phone
-  Future<void> login(String phone) async {
+  Future<void> login({
+    required String phone,
+    required String password,
+  }) async {
     state = AuthState.loading();
-
     try {
-      final worker = await _authRepository.login(phone);
-
-      // Save credentials
-      await SecureStorage.saveWorkerCredentials(
-        workerId: worker.id,
-        phone: worker.phone,
-        zone: worker.zone,
-        vehicleType: worker.vehicleType,
-      );
-
-      state = AuthState.authenticated(worker);
+      final worker = await _authRepository.login(phone: phone, password: password);
+      await _saveAndAuthenticate(worker);
     } catch (e) {
       state = AuthState.error(e.toString().replaceAll('Exception: ', ''));
     }
   }
 
-  /// Logout
+  Future<void> _saveAndAuthenticate(Worker worker) async {
+    await SecureStorage.saveWorkerCredentials(
+      workerId: worker.id,
+      name: worker.name,
+      phone: worker.phone,
+      zone: worker.zone,
+      vehicleType: worker.vehicleType,
+    );
+    state = AuthState.authenticated(worker);
+  }
+
   Future<void> logout() async {
     await SecureStorage.clearAll();
     state = AuthState.unauthenticated();
   }
 
-  /// Refresh worker data
   Future<void> refreshWorker() async {
     if (state.worker == null) return;
-
     try {
       final worker = await _authRepository.getWorkerById(state.worker!.id);
       state = AuthState.authenticated(worker);
-    } catch (e) {
-      // Keep current state if refresh fails
+    } catch (_) {
+      // Keep current state if refresh fails silently
     }
   }
 }
 
-/// Auth provider
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  final authRepository = ref.watch(authRepositoryProvider);
-  return AuthNotifier(authRepository);
+  return AuthNotifier(ref.watch(authRepositoryProvider));
 });
 
-/// Convenience provider for current worker
-final currentWorkerProvider = Provider<Worker?>((ref) {
-  return ref.watch(authProvider).worker;
-});
+final currentWorkerProvider = Provider<Worker?>((ref) => ref.watch(authProvider).worker);

@@ -1,7 +1,6 @@
 import pytest
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from app.db.session import Base
-from app.db.models import Worker, Policy, Transaction
 from decimal import Decimal
 import uuid
 
@@ -28,7 +27,9 @@ async def test_db(test_engine):
 @pytest.fixture
 def sample_worker_data():
     return {
+        "name": "Test Worker",
         "phone": "+919876543210",
+        "password": "testpassword123",
         "zone": "Mumbai-Central",
         "vehicle_type": "bike",
         "projected_weekly_income": Decimal("5000.00"),
@@ -37,8 +38,8 @@ def sample_worker_data():
 
 @pytest.fixture
 async def created_worker(test_db, sample_worker_data):
-    worker = Worker(**sample_worker_data)
-    test_db.add(worker)
-    await test_db.commit()
-    await test_db.refresh(worker)
+    from app.db.repository import WorkerRepository
+    from app.schemas.models import WorkerCreate
+    worker_create = WorkerCreate(**sample_worker_data)
+    worker = await WorkerRepository.create(test_db, worker_create)
     return worker

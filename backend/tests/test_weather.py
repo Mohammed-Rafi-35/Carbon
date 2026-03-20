@@ -30,13 +30,22 @@ class TestWeatherSynthesizer:
                     f"Rain {weather['rain_mm']}mm but humidity only {weather['humidity_percent']}%"
     
     def test_consistency_rule_heat_humidity(self):
-        """Rule 2: Temperature > 40°C should result in humidity < 60%"""
-        for _ in range(10):
-            weather = WeatherSynthesizer.generate_weather(19.0, 72.0, "Test-Zone")
-            
-            if weather["temperature_celsius"] > 40.0:
-                assert weather["humidity_percent"] <= 60, \
-                    f"Temp {weather['temperature_celsius']}°C but humidity {weather['humidity_percent']}%"
+        """Rule 2: Temperature > 40C should result in humidity < 60%
+        UNLESS Rule 1 overrides it (rain > 5mm forces humidity > 85%).
+        Tested deterministically via _apply_consistency_rules directly."""
+        # Deterministic test — bypass random generation
+        hot_dry = {
+            "temperature_celsius": 41.0,
+            "rain_mm": 0.0,
+            "humidity_percent": 80.0,
+            "wind_speed_kmh": 10.0,
+        }
+        result = WeatherSynthesizer._apply_consistency_rules(hot_dry)
+        # Rule 1 does NOT apply (rain=0), so Rule 2 must enforce humidity <= 60
+        assert result["humidity_percent"] <= 60, (
+            f"Temp {result['temperature_celsius']}C but humidity "
+            f"{result['humidity_percent']}% with no heavy rain"
+        )
     
     def test_consistency_rule_heavy_rain_wind(self):
         """Rule 4: Rain > 10mm must result in wind > 15 km/h"""

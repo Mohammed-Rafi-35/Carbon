@@ -72,10 +72,17 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    worker.phone,
+                    worker.name,
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    worker.phone,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -89,7 +96,7 @@ class ProfileScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      'ID: ${worker.id}',
+                      'ID: ${worker.id.substring(0, 8).toUpperCase()}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onPrimaryContainer,
                         fontWeight: FontWeight.w600,
@@ -103,6 +110,13 @@ class ProfileScreen extends ConsumerWidget {
 
             // Worker Information
             _buildSectionHeader(context, 'Worker Information'),
+            const SizedBox(height: 12),
+            _buildInfoCard(
+              context,
+              icon: Icons.person_outline,
+              label: 'Full Name',
+              value: worker.name,
+            ),
             const SizedBox(height: 12),
             _buildInfoCard(
               context,
@@ -163,6 +177,36 @@ class ProfileScreen extends ConsumerWidget {
 
             // Settings
             _buildSectionHeader(context, 'Settings'),
+            const SizedBox(height: 12),
+            _buildSettingsCard(
+              context,
+              icon: Icons.wifi,
+              label: 'Network Settings',
+              subtitle: 'Configure backend URL',
+              onTap: () {
+                Navigator.of(context).pushNamed(AppRouter.networkSettings);
+              },
+            ),
+            const SizedBox(height: 12),
+            _buildSettingsCard(
+              context,
+              icon: Icons.privacy_tip,
+              label: 'My Data',
+              subtitle: 'View all data Carbon holds about you',
+              onTap: () {
+                Navigator.of(context).pushNamed(AppRouter.dataTransparency);
+              },
+            ),
+            const SizedBox(height: 12),
+            _buildSettingsCard(
+              context,
+              icon: Icons.admin_panel_settings,
+              label: 'Admin Access',
+              subtitle: 'Command center — authorized personnel only',
+              onTap: () {
+                Navigator.of(context).pushNamed(AppRouter.adminLogin);
+              },
+            ),
             const SizedBox(height: 12),
             _buildThemeSelector(context, ref, themeMode),
             const SizedBox(height: 32),
@@ -315,6 +359,72 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsCard(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                color: colorScheme.onPrimaryContainer,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: colorScheme.onSurfaceVariant,
+              size: 16,
+            ),
+          ],
+        ),
       ),
     );
   }

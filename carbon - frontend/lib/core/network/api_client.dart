@@ -3,12 +3,20 @@ import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import '../../config/api_config.dart';
 
 class ApiClient {
-  late final Dio _dio;
+  late Dio _dio;
+  String? _currentBaseUrl;
   
   ApiClient() {
+    _initializeDio();
+  }
+  
+  Future<void> _initializeDio() async {
+    final basePath = await ApiConfig.getBasePath();
+    _currentBaseUrl = basePath;
+    
     _dio = Dio(
       BaseOptions(
-        baseUrl: ApiConfig.basePath,
+        baseUrl: basePath,
         connectTimeout: ApiConfig.connectTimeout,
         receiveTimeout: ApiConfig.receiveTimeout,
         sendTimeout: ApiConfig.sendTimeout,
@@ -30,6 +38,11 @@ class ApiClient {
       ),
     );
   }
+  
+  // Reinitialize with new base URL
+  Future<void> updateBaseUrl() async {
+    await _initializeDio();
+  }
 
   Dio get dio => _dio;
 
@@ -37,12 +50,14 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? queryParameters,
     Options? options,
+    Map<String, dynamic>? headers,
   }) async {
+    await _ensureInitialized();
     try {
       final response = await _dio.get(
         path,
         queryParameters: queryParameters,
-        options: options,
+        options: _mergeOptions(options, headers),
       );
       return response;
     } on DioException catch (e) {
@@ -55,17 +70,53 @@ class ApiClient {
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Options? options,
+    Map<String, dynamic>? headers,
   }) async {
+    await _ensureInitialized();
     try {
       final response = await _dio.post(
         path,
         data: data,
         queryParameters: queryParameters,
-        options: options,
+        options: _mergeOptions(options, headers),
       );
       return response;
     } on DioException catch (e) {
       throw _handleError(e);
+    }
+  }
+
+  Future<Response> patch(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    Map<String, dynamic>? headers,
+  }) async {
+    await _ensureInitialized();
+    try {
+      final response = await _dio.patch(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: _mergeOptions(options, headers),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Options _mergeOptions(Options? base, Map<String, dynamic>? headers) {
+    if (headers == null) return base ?? Options();
+    final existing = base?.headers ?? {};
+    return (base ?? Options()).copyWith(headers: {...existing, ...headers});
+  }
+  
+  Future<void> _ensureInitialized() async {
+    final currentBasePath = await ApiConfig.getBasePath();
+    if (_currentBaseUrl != currentBasePath) {
+      await _initializeDio();
     }
   }
 

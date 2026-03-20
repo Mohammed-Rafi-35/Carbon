@@ -5,6 +5,7 @@ import 'themes/theme.dart';
 import 'themes/util.dart';
 import 'core/routing/app_router.dart';
 import 'core/providers/theme_provider.dart';
+import 'presentation/widgets/offline_banner.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,6 +43,14 @@ class CarbonApp extends ConsumerWidget {
       themeMode: themeMode,
       onGenerateRoute: AppRouter.generateRoute,
       initialRoute: AppRouter.splash,
+      builder: (context, child) {
+        return Column(
+          children: [
+            const OfflineBanner(),
+            Expanded(child: child ?? const SizedBox()),
+          ],
+        );
+      },
     );
   }
 }

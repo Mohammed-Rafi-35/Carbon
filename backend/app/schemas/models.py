@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 from typing import Optional, Literal, Dict
 from datetime import datetime
 from decimal import Decimal
@@ -6,21 +6,32 @@ import uuid
 
 
 class WorkerCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
     phone: str = Field(..., pattern=r"^\+?[1-9]\d{9,14}$")
+    password: str = Field(..., min_length=6, max_length=128)
     zone: str = Field(..., min_length=2, max_length=100)
     vehicle_type: Literal["bike", "scooter", "bicycle"]
     projected_weekly_income: Optional[Decimal] = None
 
 
+class WorkerLogin(BaseModel):
+    phone: str = Field(..., pattern=r"^\+?[1-9]\d{9,14}$")
+    password: str = Field(..., min_length=1)
+
+
 class WorkerResponse(BaseModel):
     id: uuid.UUID
+    name: str
     phone: str
     zone: str
     vehicle_type: str
     wallet_balance: Decimal
     weekly_rides_completed: int
     projected_weekly_income: Optional[Decimal]
-    
+    is_active: bool
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
     class Config:
         from_attributes = True
 
@@ -37,7 +48,7 @@ class PolicyResponse(BaseModel):
     is_active: bool
     premium_rate_percentage: Decimal
     valid_until: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -56,7 +67,7 @@ class TransactionResponse(BaseModel):
     type: str
     reason: Optional[str]
     timestamp: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -70,6 +81,7 @@ class OrderReceive(BaseModel):
     dropoff_lon: float = Field(..., ge=-180, le=180)
 
 
+# WeatherResponse must be defined BEFORE OrderResponse (which embeds it)
 class WeatherResponse(BaseModel):
     temperature_celsius: float
     rain_mm: float
@@ -81,6 +93,23 @@ class WeatherResponse(BaseModel):
     timestamp: str
     meets_threshold: bool
     threshold_reason: str
+
+
+class OrderResponse(BaseModel):
+    """
+    Phase 2 — returned by POST /orders/receive.
+    Matches the Order model shape expected by the Flutter client,
+    with weather embedded as a nested object.
+    """
+    id: str
+    worker_id: str
+    pickup_lat: float
+    pickup_lon: float
+    dropoff_lat: float
+    dropoff_lon: float
+    status: str
+    created_at: str
+    weather: Optional[WeatherResponse] = None
 
 
 class SensorData(BaseModel):

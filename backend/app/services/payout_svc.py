@@ -83,7 +83,7 @@ class PayoutService:
             Transaction UUID
         """
         # Update worker wallet balance
-        await WorkerRepository.update_wallet(db, worker_id, float(payout_amount))
+        await WorkerRepository.update_wallet(db, worker_id, payout_amount)
         
         # Create transaction record
         transaction_data = TransactionCreate(

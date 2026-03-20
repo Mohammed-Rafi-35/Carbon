@@ -14,219 +14,326 @@ class RegisterScreen extends ConsumerStatefulWidget {
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  final _incomeController = TextEditingController();
   String _selectedZone = 'North';
   String _selectedVehicle = 'bike';
   bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
 
   final List<String> _zones = ['North', 'South', 'East', 'West', 'Central'];
   final List<String> _vehicles = ['bike', 'scooter', 'bicycle'];
 
   @override
   void dispose() {
+    _nameController.dispose();
     _phoneController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    _incomeController.dispose();
     super.dispose();
   }
 
-  void _handleRegister() async {
+  Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
 
     await ref.read(authProvider.notifier).register(
-          phone: _phoneController.text.trim(),
+          name: _nameController.text.trim(),
+          phone: '+91${_phoneController.text.trim()}',
+          password: _passwordController.text,
           zone: _selectedZone,
           vehicleType: _selectedVehicle,
+          projectedWeeklyIncome: _incomeController.text.isNotEmpty
+              ? double.tryParse(_incomeController.text.trim())
+              : null,
         );
 
     if (!mounted) return;
+    setState(() => _isLoading = false);
 
     final authState = ref.read(authProvider);
-
     if (authState.status == AuthStatus.authenticated) {
       Navigator.of(context).pushReplacementNamed(AppRouter.home);
     } else if (authState.status == AuthStatus.error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authState.errorMessage ?? 'Registration failed'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      _showError(authState.errorMessage ?? 'Registration failed');
     }
+  }
 
-    if (mounted) {
-      setState(() => _isLoading = false);
-    }
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Theme.of(context).colorScheme.error,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 5),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration({
+    required String label,
+    required String hint,
+    required IconData icon,
+    Widget? suffixIcon,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: cs.onSurfaceVariant),
+      hintText: hint,
+      hintStyle: TextStyle(color: cs.onSurfaceVariant),
+      prefixIcon: Icon(icon, color: cs.primary),
+      suffixIcon: suffixIcon,
+      filled: true,
+      fillColor: cs.surfaceContainerHighest,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: cs.outline),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: cs.primary, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: cs.error),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: cs.error, width: 2),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final cs = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: cs.surface,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(24),
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 20),
-                  
+                  const SizedBox(height: 12),
+
                   // Logo
                   Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.shield,
-                      size: 80,
-                      color: colorScheme.onPrimaryContainer,
+                    alignment: Alignment.center,
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: cs.primaryContainer,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.shield, size: 64, color: cs.onPrimaryContainer),
                     ),
                   ),
-                  const SizedBox(height: 32),
-                  
-                  // Title
+                  const SizedBox(height: 24),
+
                   Text(
-                    'Join Carbon',
-                    style: theme.textTheme.displayMedium?.copyWith(
-                      color: colorScheme.primary,
+                    'Create Account',
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      color: cs.primary,
                       fontWeight: FontWeight.bold,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     'Get protected while you deliver',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurface,
+                      color: cs.onSurface.withValues(alpha: 0.7),
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 32),
 
-                  // Phone Input
+                  // Full Name
+                  TextFormField(
+                    controller: _nameController,
+                    keyboardType: TextInputType.name,
+                    textCapitalization: TextCapitalization.words,
+                    style: TextStyle(color: cs.onSurface),
+                    decoration: _inputDecoration(
+                      label: 'Full Name',
+                      hint: 'Enter your full name',
+                      icon: Icons.person_outline,
+                    ),
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) return 'Name is required';
+                      if (v.trim().length < 2) return 'Name must be at least 2 characters';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Phone
                   TextFormField(
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
-                    style: TextStyle(color: colorScheme.onSurface),
+                    style: TextStyle(color: cs.onSurface),
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
                       LengthLimitingTextInputFormatter(10),
                     ],
-                    decoration: InputDecoration(
-                      labelText: 'Phone Number',
-                      labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
-                      hintText: 'Enter 10-digit phone number',
-                      hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
-                      prefixIcon: Icon(Icons.phone, color: colorScheme.primary),
-                      filled: true,
-                      fillColor: colorScheme.surfaceContainerHighest,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: colorScheme.outline),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: colorScheme.primary, width: 2),
-                      ),
+                    decoration: _inputDecoration(
+                      label: 'Phone Number',
+                      hint: '10-digit mobile number',
+                      icon: Icons.phone,
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter phone number';
-                      }
-                      if (value.length != 10) {
-                        return 'Phone number must be 10 digits';
-                      }
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Phone number is required';
+                      if (v.length != 10) return 'Enter a valid 10-digit number';
                       return null;
                     },
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
+
+                  // Password
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    style: TextStyle(color: cs.onSurface),
+                    decoration: _inputDecoration(
+                      label: 'Password',
+                      hint: 'Minimum 6 characters',
+                      icon: Icons.lock_outline,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          color: cs.onSurfaceVariant,
+                        ),
+                        onPressed: () =>
+                            setState(() => _obscurePassword = !_obscurePassword),
+                      ),
+                    ),
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Password is required';
+                      if (v.length < 6) return 'Password must be at least 6 characters';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Confirm Password
+                  TextFormField(
+                    controller: _confirmPasswordController,
+                    obscureText: _obscureConfirm,
+                    style: TextStyle(color: cs.onSurface),
+                    decoration: _inputDecoration(
+                      label: 'Confirm Password',
+                      hint: 'Re-enter your password',
+                      icon: Icons.lock_outline,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureConfirm ? Icons.visibility_off : Icons.visibility,
+                          color: cs.onSurfaceVariant,
+                        ),
+                        onPressed: () =>
+                            setState(() => _obscureConfirm = !_obscureConfirm),
+                      ),
+                    ),
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Please confirm your password';
+                      if (v != _passwordController.text) return 'Passwords do not match';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
 
                   // Zone Dropdown
                   DropdownButtonFormField<String>(
                     initialValue: _selectedZone,
-                    dropdownColor: colorScheme.surfaceContainer,
-                    style: TextStyle(color: colorScheme.onSurface),
-                    decoration: InputDecoration(
-                      labelText: 'Zone',
-                      labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
-                      prefixIcon: Icon(Icons.location_on, color: colorScheme.primary),
-                      filled: true,
-                      fillColor: colorScheme.surfaceContainerHighest,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: colorScheme.outline),
-                      ),
+                    dropdownColor: cs.surfaceContainer,
+                    style: TextStyle(color: cs.onSurface),
+                    decoration: _inputDecoration(
+                      label: 'Delivery Zone',
+                      hint: 'Select your zone',
+                      icon: Icons.location_on,
                     ),
-                    items: _zones.map((zone) {
-                      return DropdownMenuItem(
-                        value: zone,
-                        child: Text(zone, style: TextStyle(color: colorScheme.onSurface)),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() => _selectedZone = value!);
-                    },
+                    items: _zones
+                        .map((z) => DropdownMenuItem(
+                              value: z,
+                              child: Text(z, style: TextStyle(color: cs.onSurface)),
+                            ))
+                        .toList(),
+                    onChanged: (v) => setState(() => _selectedZone = v!),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
 
-                  // Vehicle Type Dropdown
+                  // Vehicle Dropdown
                   DropdownButtonFormField<String>(
                     initialValue: _selectedVehicle,
-                    dropdownColor: colorScheme.surfaceContainer,
-                    style: TextStyle(color: colorScheme.onSurface),
-                    decoration: InputDecoration(
-                      labelText: 'Vehicle Type',
-                      labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
-                      prefixIcon: Icon(Icons.two_wheeler, color: colorScheme.primary),
-                      filled: true,
-                      fillColor: colorScheme.surfaceContainerHighest,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: colorScheme.outline),
-                      ),
+                    dropdownColor: cs.surfaceContainer,
+                    style: TextStyle(color: cs.onSurface),
+                    decoration: _inputDecoration(
+                      label: 'Vehicle Type',
+                      hint: 'Select your vehicle',
+                      icon: Icons.two_wheeler,
                     ),
-                    items: _vehicles.map((vehicle) {
-                      return DropdownMenuItem(
-                        value: vehicle,
-                        child: Text(
-                          vehicle.toUpperCase(),
-                          style: TextStyle(color: colorScheme.onSurface),
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() => _selectedVehicle = value!);
+                    items: _vehicles
+                        .map((v) => DropdownMenuItem(
+                              value: v,
+                              child: Text(
+                                v[0].toUpperCase() + v.substring(1),
+                                style: TextStyle(color: cs.onSurface),
+                              ),
+                            ))
+                        .toList(),
+                    onChanged: (v) => setState(() => _selectedVehicle = v!),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Projected Weekly Income
+                  TextFormField(
+                    controller: _incomeController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    style: TextStyle(color: cs.onSurface),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                    ],
+                    decoration: _inputDecoration(
+                      label: 'Weekly Income (₹)',
+                      hint: 'e.g. 5000 (optional)',
+                      icon: Icons.currency_rupee,
+                    ),
+                    validator: (v) {
+                      if (v != null && v.isNotEmpty) {
+                        final val = double.tryParse(v);
+                        if (val == null || val <= 0) return 'Enter a valid income amount';
+                      }
+                      return null;
                     },
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 28),
 
-                  // Register Button
+                  // Register button
                   FilledButton(
                     onPressed: _isLoading ? null : _handleRegister,
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: colorScheme.primary,
-                      foregroundColor: colorScheme.onPrimary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -237,48 +344,39 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             width: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                colorScheme.onPrimary,
-                              ),
+                              color: cs.onPrimary,
                             ),
                           )
-                        : Text(
-                            'Register',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: colorScheme.onPrimary,
-                            ),
+                        : const Text(
+                            'Create Account',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                   ),
                   const SizedBox(height: 16),
 
-                  // Login Link
+                  // Login link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         'Already have an account? ',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurface,
-                        ),
+                        style: theme.textTheme.bodyMedium
+                            ?.copyWith(color: cs.onSurface.withValues(alpha: 0.7)),
                       ),
                       TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pushReplacementNamed(
-                            AppRouter.login,
-                          );
-                        },
+                        onPressed: () =>
+                            Navigator.of(context).pushReplacementNamed(AppRouter.login),
                         child: Text(
                           'Login',
                           style: TextStyle(
-                            color: colorScheme.primary,
+                            color: cs.primary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),

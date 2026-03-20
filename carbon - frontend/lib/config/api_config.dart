@@ -1,33 +1,83 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
 /// API Configuration
 /// Centralized endpoint management for easy deployment changes
 class ApiConfig {
-  // Base URL - Change this when deploying to production
-  // For Android Emulator: use 10.0.2.2:8000
-  // For Physical Device: use your laptop IP or ngrok URL
-  // For Production: use Render.com URL
-  static const String baseUrl = 'http://10.0.2.2:8000';
+  // Default Base URLs
+  static const String defaultEmulatorUrl = 'http://10.0.2.2:8000';
+  static const String defaultLocalhostUrl = 'http://localhost:8000';
+  
+  // Storage key for custom URL
+  static const String _customUrlKey = 'custom_base_url';
   
   // API Version
   static const String apiVersion = '/api/v1';
   
+  // Cached custom URL
+  static String? _cachedCustomUrl;
+  
+  // Get current base URL (checks for override first)
+  static Future<String> getBaseUrl() async {
+    if (_cachedCustomUrl != null) return _cachedCustomUrl!;
+    
+    final prefs = await SharedPreferences.getInstance();
+    final customUrl = prefs.getString(_customUrlKey);
+    
+    if (customUrl != null && customUrl.isNotEmpty) {
+      _cachedCustomUrl = customUrl;
+      return customUrl;
+    }
+    
+    return defaultEmulatorUrl;
+  }
+  
+  // Set custom base URL
+  static Future<void> setCustomBaseUrl(String url) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_customUrlKey, url);
+    _cachedCustomUrl = url;
+  }
+  
+  // Clear custom URL (revert to default)
+  static Future<void> clearCustomBaseUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_customUrlKey);
+    _cachedCustomUrl = null;
+  }
+  
+  // Get custom URL if set (for display purposes)
+  static Future<String?> getCustomBaseUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_customUrlKey);
+  }
+  
   // Full base path
-  static String get basePath => '$baseUrl$apiVersion';
+  static Future<String> getBasePath() async {
+    final baseUrl = await getBaseUrl();
+    return '$baseUrl$apiVersion';
+  }
   
   // Worker Endpoints
-  static String get workerRegister => '$basePath/workers/register';
-  static String workerById(String workerId) => '$basePath/workers/$workerId';
-  static String workerByPhone(String phone) => '$basePath/workers/phone/$phone';
+  static Future<String> get workerRegister async => '${await getBasePath()}/workers/register';
+  static Future<String> get workerLogin async => '${await getBasePath()}/workers/login';
+  static Future<String> workerById(String workerId) async => '${await getBasePath()}/workers/$workerId';
+  static Future<String> workerByPhone(String phone) async => '${await getBasePath()}/workers/phone/$phone';
+  static Future<String> workerPolicy(String workerId) async => '${await getBasePath()}/workers/$workerId/policy';
+  static Future<String> workerInsuranceSummary(String workerId) async => '${await getBasePath()}/workers/$workerId/insurance-summary';
+  static Future<String> workerIncrementRides(String workerId) async => '${await getBasePath()}/workers/$workerId/rides/increment';
+  static Future<String> workerDeductPremium(String workerId) async => '${await getBasePath()}/workers/$workerId/premium/deduct';
+  static Future<String> workerWeeklyReset(String workerId) async => '${await getBasePath()}/workers/$workerId/weekly-reset';
   
   // Order Endpoints
-  static String get orderReceive => '$basePath/orders/receive';
-  static String orderWeather(String orderId) => '$basePath/orders/weather/$orderId';
+  static Future<String> get orderReceive async => '${await getBasePath()}/orders/receive';
+  static Future<String> orderWeather(String orderId) async => '${await getBasePath()}/orders/weather/$orderId';
   
   // Payout Endpoints
-  static String get payoutTrigger => '$basePath/payout/trigger';
-  static String payoutHistory(String workerId) => '$basePath/payout/history/$workerId';
+  static Future<String> get payoutTrigger async => '${await getBasePath()}/payout/trigger';
+  static Future<String> payoutHistory(String workerId) async => '${await getBasePath()}/payout/history/$workerId';
   
   // Health Check
-  static String get health => '$baseUrl/health';
+  static Future<String> get health async => '${await getBaseUrl()}/health';
   
   // Timeout configurations
   static const Duration connectTimeout = Duration(seconds: 30);
@@ -38,6 +88,10 @@ class ApiConfig {
   static const String hmacSecretKey = 'test-secret-key-for-testing-only';
   
   // Environment detection
-  static bool get isProduction => baseUrl.contains('render.com');
-  static bool get isDevelopment => !isProduction;
+  static Future<bool> get isProduction async {
+    final baseUrl = await getBaseUrl();
+    return baseUrl.contains('render.com') || baseUrl.contains('https://');
+  }
+  
+  static Future<bool> get isDevelopment async => !(await isProduction);
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
+import '../../config/api_config.dart';
+import '../../core/network/api_client.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/routing/app_router.dart';
 import '../../data/models/auth_state.dart';
@@ -16,6 +18,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
+  String _statusMessage = 'Initializing...';
+  bool _hasError = false;
 
   @override
   void initState() {
@@ -35,13 +39,44 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
     );
     
     _controller.forward();
-    
-    // Listen to auth state changes
-    Timer(const Duration(seconds: 2), () {
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    try {
+      // Check backend connectivity
+      setState(() => _statusMessage = 'Connecting to server...');
+      await _checkBackendConnection();
+      
+      // Small delay for smooth UX
+      await Future.delayed(const Duration(milliseconds: 500));
+      
       if (mounted) {
+        setState(() => _statusMessage = 'Loading...');
+        await Future.delayed(const Duration(milliseconds: 500));
         _navigateBasedOnAuthState();
       }
-    });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+          _statusMessage = 'Connection failed';
+        });
+      }
+    }
+  }
+
+  Future<void> _checkBackendConnection() async {
+    try {
+      final apiClient = ApiClient();
+      final healthUrl = await ApiConfig.health;
+      await apiClient.get(healthUrl).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => throw Exception('Connection timeout'),
+      );
+    } catch (e) {
+      throw Exception('Backend unreachable: $e');
+    }
   }
 
   void _navigateBasedOnAuthState() {
@@ -118,16 +153,56 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                 ),
                 const SizedBox(height: 48),
                 
-                SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 3,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      colorScheme.primary,
+                if (!_hasError)
+                  SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        colorScheme.primary,
+                      ),
                     ),
+                  )
+                else
+                  Icon(
+                    Icons.error_outline,
+                    size: 40,
+                    color: colorScheme.error,
+                  ),
+                const SizedBox(height: 16),
+                
+                Text(
+                  _statusMessage,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: _hasError ? colorScheme.error : colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
+                
+                if (_hasError) ...[
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _hasError = false;
+                        _statusMessage = 'Retrying...';
+                      });
+                      _initializeApp();
+                    },
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pushReplacementNamed(AppRouter.login);
+                    },
+                    child: const Text('Continue Offline'),
+                  ),
+                ],
               ],
             ),
           ),
